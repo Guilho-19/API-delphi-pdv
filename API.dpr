@@ -143,6 +143,7 @@ begin
 end;
 
 begin
+  IsMultiThread := True;
   try
   if WebRequestHandler <> nil then
     WebRequestHandler.WebModuleClass := WebModuleClass;

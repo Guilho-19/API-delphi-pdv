@@ -8,9 +8,9 @@ object WebModule1: TWebModule1
     end
     item
       MethodType = mtGet
-      Name = 'WebActionItem1'
-      PathInfo = '/usuarios'
-      OnAction = WebModule1WebActionItem1Action
+      Name = 'wmProdutos'
+      PathInfo = '/produtos'
+      OnAction = WebModule1wmProdutosAction
     end>
   Height = 230
   Width = 415
