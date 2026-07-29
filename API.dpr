@@ -10,7 +10,8 @@ uses
   Web.WebReq,
   Web.WebBroker,
   uWebModule in 'uWebModule.pas' {WebModule1: TWebModule},
-  ServerConst1 in 'ServerConst1.pas';
+  ServerConst1 in 'ServerConst1.pas',
+  uDMConexao in 'uDMConexao.pas' {dmConexao: TDataModule};
 
 {$R *.res}
 

@@ -64,6 +64,7 @@ var
   queryTADO: TADOQuery;
   arrayJSON: TJSONArray;
   objectJSON: TJSONObject;
+  idBusca: string;
 begin
   try
     queryTADO := TADOQuery.Create(nil);
@@ -71,7 +72,18 @@ begin
 
     try
       queryTADO.Connection := FConexaoDM.conSQLServer;
-      queryTADO.SQL.Text := 'select id_produto, codigo_barras, descricao, preco_venda, estoque from PDV_Produtos';
+      idBusca := request.QueryFields.Values['id'];
+
+      if idBusca <> '' then
+      begin
+        queryTADO.SQL.Text := 'select id_produto, codigo_barras, descricao, preco_venda, estoque from PDV_Produtos where id_produto = :pId';
+        queryTADO.Parameters.ParamByName('pId').Value := StrToIntDef(idBusca, 0);
+      end
+      else
+      begin
+        queryTADO.SQL.Text := 'select id_produto, codigo_barras, descricao, preco_venda, estoque from PDV_Produtos';
+      end;
+
       queryTADO.Open;
 
       while not queryTADO.Eof do
