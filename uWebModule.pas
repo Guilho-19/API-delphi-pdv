@@ -16,8 +16,6 @@ type
     { Private declarations }
   public
     { Public declarations }
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
   end;
 
 var
@@ -30,23 +28,6 @@ implementation
 uses uDMConexao;
 
 {$R *.dfm}
-
-var
-  FConexaoDM: TdmConexao;
-
-constructor TWebModule1.Create(AOwner: TComponent);
-begin
-  CoInitialize(nil);
-  inherited Create(AOwner);
-  FConexaoDM := TdmConexao.Create(nil);
-end;
-
-destructor TWebModule1.Destroy;
-begin
-  FConexaoDM.Free;
-  inherited Destroy;
-  CoUninitialize;
-end;
 
 procedure TWebModule1.WebModule1DefaultHandlerAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
@@ -61,57 +42,74 @@ end;
 procedure TWebModule1.WebModule1wmProdutosAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
 var
+  dmLocal: TdmConexao;
   queryTADO: TADOQuery;
   arrayJSON: TJSONArray;
   objectJSON: TJSONObject;
   idBusca: string;
 begin
+  CoInitialize(nil);
   try
-    queryTADO := TADOQuery.Create(nil);
-    arrayJSON := TJSONArray.Create;
-
     try
-      queryTADO.Connection := FConexaoDM.conSQLServer;
-      idBusca := request.QueryFields.Values['id'];
+      dmLocal := TdmConexao.Create(nil);
+      try
+        queryTADO := TADOQuery.Create(nil);
+        try
+          arrayJSON := TJSONArray.Create;
+          try
+            queryTADO.Connection := dmLocal.conSQLServer;
+            dmLocal.conSQLServer.Connected := True;
+            idBusca := Request.QueryFields.Values['id'];
 
-      if idBusca <> '' then
+            if idBusca <> '' then
+            begin
+              queryTADO.SQL.Text := 'select id_produto, codigo_barras, descricao, preco_venda, estoque from PDV_Produtos where id_produto = :pId';
+              queryTADO.Parameters.ParamByName('pId').Value := StrToIntDef(idBusca, 0);
+            end
+            else
+            begin
+              queryTADO.SQL.Text := 'select id_produto, codigo_barras, descricao, preco_venda, estoque from PDV_Produtos';
+            end;
+
+            queryTADO.Open;
+
+            while not queryTADO.Eof do
+            begin
+              objectJSON := TJSONObject.Create;
+
+              objectJSON.AddPair('id_produto', TJSONNumber.Create(queryTado.FieldByName('id_produto').AsInteger));
+              objectJSON.AddPair('codigo_barras', queryTADO.FieldByName('codigo_barras').AsString);
+              objectJSON.AddPair('descricao', queryTADO.FieldByName('descricao').AsString);
+              objectJSON.AddPair('preco_venda', TJSONNumber.Create(queryTADO.FieldByName('preco_venda').AsFloat));
+              objectJSON.AddPair('estoque', TJSONNumber.Create(queryTADO.FieldByName('estoque').AsFloat));
+
+              arrayJSON.AddElement(objectJSON);
+
+              queryTADO.Next;
+            end;
+
+            Response.ContentType := 'application/json; charset=utf-8';
+            Response.Content := arrayJSON.ToString;
+          finally
+            arrayJSON.Free;
+          end;
+        finally
+          queryTADO.Free;
+          dmLocal.conSQLServer.Connected := False;
+        end;
+      finally
+        dmLocal.Free;
+      end;
+    except
+      on E: Exception do
       begin
-        queryTADO.SQL.Text := 'select id_produto, codigo_barras, descricao, preco_venda, estoque from PDV_Produtos where id_produto = :pId';
-        queryTADO.Parameters.ParamByName('pId').Value := StrToIntDef(idBusca, 0);
-      end
-      else
-      begin
-        queryTADO.SQL.Text := 'select id_produto, codigo_barras, descricao, preco_venda, estoque from PDV_Produtos';
+        Response.StatusCode := 500;
+        Response.Content := '{"error": "' + E.Message + '"}';
       end;
 
-      queryTADO.Open;
-
-      while not queryTADO.Eof do
-      begin
-        objectJSON := TJSONObject.Create;
-
-        objectJSON.AddPair('id_produto', TJSONNumber.Create(queryTado.FieldByName('id_produto').AsInteger));
-        objectJSON.AddPair('codigo_barras', queryTADO.FieldByName('codigo_barras').AsString);
-        objectJSON.AddPair('descricao', queryTADO.FieldByName('descricao').AsString);
-        objectJSON.AddPair('preco_venda', TJSONNumber.Create(queryTADO.FieldByName('preco_venda').AsFloat));
-        objectJSON.AddPair('estoque', TJSONNumber.Create(queryTADO.FieldByName('estoque').AsFloat));
-
-        arrayJSON.AddElement(objectJSON);
-
-        queryTADO.Next;
-      end;
-
-      Response.ContentType := 'application/json; charset=utf-8';
-      Response.Content := arrayJSON.ToString;
-    finally
-      queryTADO.Free; arrayJSON.Free;
     end;
-  except
-    on E: Exception do
-    begin
-      Response.StatusCode := 500;
-      Response.Content := '{"error": "' + E.Message + '"}';
-    end;
+  finally
+    CoUninitialize;
   end;
 
   Handled := True;
