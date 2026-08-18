@@ -11,6 +11,12 @@ object WebModule1: TWebModule1
       Name = 'wmProdutos'
       PathInfo = '/produtos'
       OnAction = WebModule1wmProdutosAction
+    end
+    item
+      MethodType = mtPost
+      Name = 'actNovoProduto'
+      PathInfo = '/produtos/novo'
+      OnAction = WebModule1actNovoProdutoAction
     end>
   Height = 230
   Width = 415

@@ -12,6 +12,8 @@ type
       Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
     procedure WebModule1wmProdutosAction(Sender: TObject; Request: TWebRequest;
       Response: TWebResponse; var Handled: Boolean);
+    procedure WebModule1actNovoProdutoAction(Sender: TObject;
+      Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
   private
     { Private declarations }
   public
@@ -28,6 +30,67 @@ implementation
 uses uDMConexao;
 
 {$R *.dfm}
+
+procedure TWebModule1.WebModule1actNovoProdutoAction(Sender: TObject;
+  Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
+var
+  dmLocal: TdmConexao;
+  queryTADO: TADOQuery;
+  jsonRecebido: TJSONObject;
+begin
+  CoInitialize(nil);
+  try
+    try
+      dmLocal := TdmConexao.Create(nil);
+      queryTADO := TADOQuery.Create(nil);
+      try
+        dmLocal.conSQLServer.Connected := True;
+        queryTADO.Connection := dmLocal.conSQLServer;
+        jsonRecebido := TJSONObject.ParseJSONValue(Request.Content) as TJSONObject;
+
+        if Assigned(jsonRecebido) then
+        begin
+          try
+            queryTADO.SQL.Text := 'insert into PDV_Produtos (codigo_barras, descricao, preco_venda, estoque) ' +
+                                  'values (:pCodigo, :pDescricao, :pPreco, :pEstoque) ';
+
+            queryTADO.Parameters.ParamByName('pCodigo').Value := jsonRecebido.GetValue<string>('codigo_barras');
+            queryTADO.Parameters.ParamByName('pDescricao').Value := jsonRecebido.GetValue<string>('descricao');
+            queryTADO.Parameters.ParamByName('pPreco').Value := jsonRecebido.GetValue<double>('preco_venda');
+            queryTADO.Parameters.ParamByName('pEstoque').Value := jsonRecebido.GetValue<double>('estoque');
+            queryTADO.ExecSQL;
+
+            Response.StatusCode := 201;
+            Response.ContentType := 'application/json; charset=utf-8';
+            Response.Content := '{"mensagem": "Produto inserido com sucesso!"}';
+          finally
+            jsonRecebido.Free;
+          end;
+        end
+        else
+        begin
+          Response.StatusCode := 400;
+          Response.ContentType := 'application/json; charset=utf-8';
+          Response.Content := '{"error": "Formato JSON inválido ou vazio."}';
+        end;
+      finally
+        queryTADO.Free;
+        dmLocal.conSQLServer.Connected := False;
+        dmLocal.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Response.StatusCode := 500;
+        Response.ContentType := 'application/json; charset=utf=8';
+        Response.COntent := '{"error": " ' + E.Message + '"}';
+      end;
+    end;
+  finally
+    CoUninitialize;
+  end;
+    Handled := True;
+end;
 
 procedure TWebModule1.WebModule1DefaultHandlerAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
