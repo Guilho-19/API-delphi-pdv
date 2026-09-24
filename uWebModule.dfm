@@ -22,6 +22,12 @@ object WebModule1: TWebModule1
       Name = 'actAtualizarProduto'
       PathInfo = '/produtos'
       OnAction = WebModule1actAtualizarProdutoAction
+    end
+    item
+      MethodType = mtDelete
+      Name = 'actExcluirProduto'
+      PathInfo = '/produtos'
+      OnAction = WebModule1actExcluirProdutoAction
     end>
   Height = 230
   Width = 415

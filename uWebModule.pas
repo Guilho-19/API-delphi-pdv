@@ -16,6 +16,8 @@ type
       Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
     procedure WebModule1actAtualizarProdutoAction(Sender: TObject;
       Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
+    procedure WebModule1actExcluirProdutoAction(Sender: TObject;
+      Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
   private
     { Private declarations }
   public
@@ -78,7 +80,7 @@ begin
             queryTADO.ExecSQL;
 
             Response.StatusCode := 200;
-            Response.ContentType := 'application/json; charset=utf8';
+            Response.ContentType := 'application/json; charset=utf-8';
             Response.Content := '{"mensagem": "Produto atualizado com sucesso!"}';
           finally
             jsonRecebido.Free;
@@ -91,6 +93,60 @@ begin
           Response.Content := '{"error": "Formato JSON inválido ou vazio."}';
         end;
 
+      finally
+        queryTADO.Free;
+        dmLocal.conSQLServer.Connected := False;
+        dmLocal.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Response.StatusCode := 500;
+        Response.ContentType := 'application/json; charset=utf-8';
+        Response.Content := '{"error": "' + E.Message + '"}';
+      end;
+    end;
+  finally
+    CoUninitialize;
+  end;
+
+  Handled := True;
+end;
+
+procedure TWebModule1.WebModule1actExcluirProdutoAction(Sender: TObject;
+  Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
+var
+  dmLocal: TdmConexao;
+  queryTADO: TADOQuery;
+  IdBusca: string;
+begin
+  CoInitialize(nil);
+  try
+    try
+      IdBusca := Request.QueryFields.Values['id'];
+
+      if IdBusca = '' then
+      begin
+        Response.StatusCode := 400;
+        Response.ContentType := 'application/json; charset=utf-8';
+        Response.Content := '{"error": "ID do produto não informado para exclusão."}';
+        Handled := True;
+        Exit;
+      end;
+
+      dmLocal := TdmConexao.Create(nil);
+      queryTADO := TADOQuery.Create(nil);
+      try
+        dmLocal.conSQLServer.Connected := True;
+        queryTADO.Connection := dmLocal.conSQLServer;
+
+        queryTADO.SQL.Text := 'delete from PDV_Produtos where id_produto = :pId';
+        queryTADO.Parameters.ParamByName('pId').Value := StrToIntDef(IdBusca, 0);
+        queryTADO.ExecSQL;
+
+        Response.StatusCode := 200;
+        Response.ContentType := 'application/json; charset=utf-8';
+        Response.Content := '{"mensagem": "Produto excluído com sucesso!"}';
       finally
         queryTADO.Free;
         dmLocal.conSQLServer.Connected := False;
@@ -162,7 +218,7 @@ begin
       on E: Exception do
       begin
         Response.StatusCode := 500;
-        Response.ContentType := 'application/json; charset=utf=8';
+        Response.ContentType := 'application/json; charset=utf-8';
         Response.COntent := '{"error": " ' + E.Message + '"}';
       end;
     end;
