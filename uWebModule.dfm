@@ -1,7 +1,6 @@
 object WebModule1: TWebModule1
   Actions = <
     item
-      Default = True
       Name = 'DefaultHandler'
       PathInfo = '/'
       OnAction = WebModule1DefaultHandlerAction
@@ -17,6 +16,12 @@ object WebModule1: TWebModule1
       Name = 'actNovoProduto'
       PathInfo = '/produtos/novo'
       OnAction = WebModule1actNovoProdutoAction
+    end
+    item
+      MethodType = mtPut
+      Name = 'actAtualizarProduto'
+      PathInfo = '/produtos'
+      OnAction = WebModule1actAtualizarProdutoAction
     end>
   Height = 230
   Width = 415

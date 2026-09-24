@@ -14,6 +14,8 @@ type
       Response: TWebResponse; var Handled: Boolean);
     procedure WebModule1actNovoProdutoAction(Sender: TObject;
       Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
+    procedure WebModule1actAtualizarProdutoAction(Sender: TObject;
+      Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
   private
     { Private declarations }
   public
@@ -30,6 +32,84 @@ implementation
 uses uDMConexao;
 
 {$R *.dfm}
+
+procedure TWebModule1.WebModule1actAtualizarProdutoAction(Sender: TObject;
+  Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
+var
+  dmLocal: TdmConexao;
+  queryTADO: TADOQuery;
+  jsonRecebido: TJSONObject;
+  IdBusca: string;
+begin
+  CoInitialize(nil);
+  try
+    try
+      IdBusca := Request.QueryFields.Values['id'];
+
+      if IdBusca = '' then
+      begin
+        Response.StatusCode := 400;
+        Response.ContentType := 'application/json; charset=utf-8';
+        Response.Content := '{"error": "ID do produto não informado na URL."}';
+        Handled := True;
+        Exit;
+      end;
+
+      dmLocal := TdmConexao.Create(nil);
+      queryTADO := TADOQuery.Create(nil);
+      try
+        dmLocal.conSQLServer.Connected := True;
+        queryTADO.Connection := dmLocal.conSQLServer;
+        jsonRecebido := TJSONObject.ParseJSONValue(Request.Content) as TJSONObject;
+
+        if Assigned(jsonRecebido) then
+        begin
+          try
+            queryTADO.SQL.Text := 'update PDV_Produtos set codigo_barras = :pCodigo,' +
+                                  'descricao = :pDescricao, preco_venda = :pPreco, ' +
+                                  'estoque = :pEstoque where id_produto = :pId';
+
+            queryTADO.Parameters.ParamByName('pId').Value := StrToIntDef (IdBusca, 0);
+            queryTADO.Parameters.ParamByName('pCodigo').Value := jsonRecebido.GetValue<string>('codigo_barras');
+            queryTADO.Parameters.ParamByName('pDescricao').Value := jsonRecebido.GetValue<string>('descricao');
+            queryTADO.Parameters.ParamByName('pPreco').Value := jsonRecebido.GetValue<Double>('preco_venda');
+            queryTADO.Parameters.ParamByName('pEstoque').Value := jsonRecebido.GetValue<Double>('estoque');
+
+            queryTADO.ExecSQL;
+
+            Response.StatusCode := 200;
+            Response.ContentType := 'application/json; charset=utf8';
+            Response.Content := '{"mensagem": "Produto atualizado com sucesso!"}';
+          finally
+            jsonRecebido.Free;
+          end;
+        end
+        else
+        begin
+          Response.StatusCode := 400;
+          Response.ContentType := 'application/json; charset=utf-8';
+          Response.Content := '{"error": "Formato JSON inválido ou vazio."}';
+        end;
+
+      finally
+        queryTADO.Free;
+        dmLocal.conSQLServer.Connected := False;
+        dmLocal.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Response.StatusCode := 500;
+        Response.ContentType := 'application/json; charset=utf-8';
+        Response.Content := '{"error": "' + E.Message + '"}';
+      end;
+    end;
+  finally
+    CoUninitialize;
+  end;
+
+  Handled := True;
+end;
 
 procedure TWebModule1.WebModule1actNovoProdutoAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
